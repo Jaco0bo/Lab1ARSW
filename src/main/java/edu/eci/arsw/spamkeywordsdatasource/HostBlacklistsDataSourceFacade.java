@@ -8,31 +8,20 @@ import java.util.logging.Logger;
 
 /**
  * Thread-safe facade (simulada) de listas negras.
+ * Incluye comportamiento determinista para pruebas:
+ * - 202.24.34.55 (202243455) -> disperso en muchas listas
+ * - 212.24.24.55 (212242455) -> no aparece en ninguna lista
  */
 public class HostBlacklistsDataSourceFacade {
 
-    // Singleton thread-safe (double-checked locking)
     private static volatile HostBlacklistsDataSourceFacade instan;
-
-    // Cache para resultados (clave: (server<<32) ^ host)
     private final ConcurrentHashMap<Long, Boolean> cache = new ConcurrentHashMap<>();
-
     private final Logger LOG = Logger.getLogger(HostBlacklistsDataSourceFacade.class.getName());
+    private static final int registeredServersCount = 10000;
 
-    // Número de servidores registrados (simulado).
-    private final int registeredServersCount = 10000;
-
-    // Constructor privado para singleton
     private HostBlacklistsDataSourceFacade() {
     }
 
-    /**
-     * Determina si el host (representado como int) está en la blacklist del servidor blservernum.
-     * Implementación determinística para pruebas reproducibles.
-     * @param blservernum número de servidor (0..getRegisteredServersCount()-1)
-     * @param host host codificado como int (ej. "200.24.34.55" -> "200243455")
-     * @return true si está en la blacklist de ese servidor, false en otro caso
-     */
     public boolean isInBlacklistServer(int blservernum, int host) {
         if (blservernum < 0 || blservernum >= registeredServersCount) {
             throw new IllegalArgumentException("Server number out of range: " + blservernum);
@@ -42,35 +31,43 @@ public class HostBlacklistsDataSourceFacade {
         Boolean cached = cache.get(key);
         if (cached != null) return cached;
 
-        // Semilla determinística basada en server + host
+        if (host == 202243455) { // 202.24.34.55 -> Debe estar reportado de forma dispersa
+            boolean found = (blservernum % 2003 == 0) ||
+                    (blservernum % 1999 == 0) ||
+                    (blservernum % 2011 == 0) ||
+                    (blservernum % 2017 == 0);
+            cache.put(key, found);
+            return found;
+        }
+
+        if (host == 212242455) { // 212.24.24.55 -> No debe está en ninguna lista
+            cache.put(key, false);
+            return false;
+        }
+
+        // Comportamiento pseudoaleatorio determinista predeterminado para otras IP
         long seed = Objects.hash(host, blservernum);
         Random r = new Random(seed);
 
-        // Simulación simple: probabilidad baja, determinista por seed
+        int baseThreshold = 7; // ~7% por servidor
+        int bias = Math.max(0, 5 - (blservernum / 1000)); // probabilidad ligeramente mayor en servidores de índice pequeño
+        int threshold = baseThreshold + bias;
+
         int chance = r.nextInt(100);
-        boolean found = (chance < 7); // ~7% de probabilidad por servidor
+        boolean found = (chance < threshold);
 
         cache.put(key, found);
         return found;
     }
 
-    /**
-     * Reporta el host como confiable en la BD local (simulado con LOG).
-     */
     public void reportAsTrustworthy(String host) {
         LOG.log(Level.INFO, "HOST {0} Reported as trustworthy", host);
     }
 
-    /**
-     * Reporta el host como NO confiable en la BD local (simulado con LOG).
-     */
     public void reportAsNotTrustworthy(String host) {
         LOG.log(Level.INFO, "HOST {0} Reported as NOT trustworthy", host);
     }
 
-    /**
-     * Singleton accessor (thread-safe).
-     */
     public static HostBlacklistsDataSourceFacade getInstance() {
         if (instan == null) {
             synchronized (HostBlacklistsDataSourceFacade.class) {
@@ -82,10 +79,8 @@ public class HostBlacklistsDataSourceFacade {
         return instan;
     }
 
-    /**
-     * Número de servidores registrados.
-     */
     public int getRegisteredServersCount() {
         return registeredServersCount;
     }
 }
+
