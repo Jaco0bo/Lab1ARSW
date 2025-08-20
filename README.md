@@ -48,6 +48,8 @@ INFO: HOST 205.24.34.55 Reported as trustworthy
 
 INFO: HOST 205.24.34.55 Reported as NOT trustworthy
 
+![NotTrustWorthy](images/NotTrustWorthy.png)
+
 Al programa de prueba provisto (Main), le toma sólo algunos segundos análizar y reportar la dirección provista (200.24.34.55), ya que la misma está registrada más de cinco veces en los primeros servidores, por lo que no requiere recorrerlos todos. Sin embargo, hacer la búsqueda en casos donde NO hay reportes, o donde los mismos están dispersos en las miles de listas negras, toma bastante tiempo.
 
 Éste, como cualquier método de búsqueda, puede verse como un problema vergonzosamente paralelo, ya que no existen dependencias entre una partición del problema y otra.
