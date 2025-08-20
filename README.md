@@ -65,3 +65,53 @@ Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo
       ![checkHost2](images/checkHost2.png)
     - Se sabe que el HOST 202.24.34.55 está reportado en listas negras de una forma más dispersa, y que el host 212.24.24.55 NO está en ninguna lista negra.
       ![BlackListHost](images/blackListHost.png)
+
+La estrategia de paralelismo antes implementada es ineficiente en ciertos casos, pues la búsqueda se sigue realizando aún cuando los N hilos (en su conjunto) ya hayan encontrado el número mínimo de ocurrencias requeridas para reportar al servidor como malicioso. Cómo se podría modificar la implementación para minimizar el número de consultas en estos casos?, qué elemento nuevo traería esto al problema?
+
+Tras revisar el problema y comparar soluciones típicas en programación concurrente, propongo dos medidas combinadas que reducen significativamente las comprobaciones redundantes:
+1. Señal de cancelación cooperativa (stop)
+
+    - Introducir un AtomicBoolean stop compartido.
+
+    - Cada hilo antes de iniciar una nueva verificación comprueba stop.get(). Si es true, el hilo sale.
+
+    - Cuando cualquier hilo incrementa el contador global de ocurrencias y detecta que se alcanza el umbral (>= BLACK_LIST_ALARM_COUNT), hace stop.set(true).
+
+    Así se impide que se inicien nuevas comprobaciones después de alcanzado el umbral.
+
+2. Asignación de trabajo dinámica mediante un índice global (nextIndex)
+
+    - En vez de particionar de forma estática, usar un AtomicInteger nextIndex que actúe como “cola ligera”: cada hilo hace i = nextIndex.getAndIncrement() para obtener la siguiente lista a chequear.
+
+    - Mientras i < totalServers y !stop.get(), el hilo procesa i.
+
+    De esta manera se evita que un hilo esté atascado con un sub-rango grande mientras otros ya terminaron; permite que el trabajo se consumA hasta que alguien active stop.
+
+Al introducir estos cambios incorporamos cancelación cooperativa y planificación dinámica donde conseguimos:
+
+- Necesidad de visibilidad y atomicidad: hay que usar variables atómicas (AtomicBoolean, AtomicInteger) o volatile para asegurar que todos los hilos vean la señal stop sin retrasos.
+
+- Mayor coordinación entre hilos: ahora los hilos colaboran (cooperan) para dejar de trabajar en cuanto el conjunto ha alcanzado la meta. Esto añade una dependencia ligera (la señal stop) que antes no existía.
+
+- Cambio de patrón de particionado: pasamos de partición estática a asignación dinámica, lo que altera cómo se razona sobre balance de carga y rendimiento.
+
+- Posible falta de determinismo en orden de comprobaciones: al ser dinámica, las listas se chequean en orden “race” (quién hace getAndIncrement primero), por lo que la secuencia de comprobaciones puede variar entre ejecuciones; esto puede afectar pruebas que dependen del orden.
+
+- Manejo de llamadas bloqueantes: si isInBlacklistServer puede bloquear largo tiempo, la cancelación cooperativa sólo evita nuevas comprobaciones; las llamadas en curso seguirán hasta terminar a menos que se implementen interrupciones/timeouts en esa función.
+
+- Coste extra de sincronización atómica: las operaciones atómicas tienen un coste (pequeño), pero mucho menor que el ahorro al evitar consultas redundantes en escenarios realistas.
+
+### Parte III - Evaluación de Desempeño
+
+A partir de lo anterior, implemente la siguiente secuencia de experimentos para realizar las validación de direcciones IP dispersas (por ejemplo 202.24.34.55), tomando los tiempos de ejecución de los mismos (asegúrese de hacerlos en la misma máquina).
+Al iniciar el programa ejecute el monitor jVisualVM, y a medida que corran las pruebas, revise y anote el consumo de CPU y de memoria en cada caso.
+
+1. Un solo hilo.
+
+2. Tantos hilos como núcleos de procesamiento (haga que el programa determine esto haciendo uso del API Runtime).
+
+3. Tantos hilos como el doble de núcleos de procesamiento.
+
+4. 50 hilos.
+
+5. 100 hilos.
