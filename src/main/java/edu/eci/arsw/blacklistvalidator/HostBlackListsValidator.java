@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package edu.eci.arsw.blacklistvalidator;
 
 import edu.eci.arsw.spamkeywordsdatasource.HostBlacklistsDataSourceFacade;
@@ -18,7 +13,7 @@ import java.util.logging.Logger;
 public class HostBlackListsValidator {
 
     private static final int BLACK_LIST_ALARM_COUNT=5;
-    
+
     /**
      * Check the given host's IP address in all the available black lists,
      * and report it as NOT Trustworthy when such IP was reported in at least
@@ -26,45 +21,43 @@ public class HostBlackListsValidator {
      * The search is not exhaustive: When the number of occurrences is equal to
      * BLACK_LIST_ALARM_COUNT, the search is finished, the host reported as
      * NOT Trustworthy, and the list of the five blacklists returned.
-     * @param ipaddress suspicious host's IP address.
+     * @param host suspicious.
      * @return  Blacklists numbers where the given host's IP address was found.
      */
-    public List<Integer> checkHost(String ipaddress){
-        
+    public List<Integer> checkHost(String host){
+
         LinkedList<Integer> blackListOcurrences=new LinkedList<>();
-        
+
         int ocurrencesCount=0;
-        
+
         HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
-        
+
         int checkedListsCount=0;
-        
+
         for (int i=0;i<skds.getRegisteredServersCount() && ocurrencesCount<BLACK_LIST_ALARM_COUNT;i++){
             checkedListsCount++;
-            
-            if (skds.isInBlackListServer(i, ipaddress)){
-                
+            String ip_int = host.replace(".","");
+
+            if (skds.isInBlacklistServer(i, Integer.parseInt(ip_int))){
+
                 blackListOcurrences.add(i);
-                
+
                 ocurrencesCount++;
             }
         }
-        
+
         if (ocurrencesCount>=BLACK_LIST_ALARM_COUNT){
-            skds.reportAsNotTrustworthy(ipaddress);
+            skds.reportAsNotTrustworthy(host);
         }
         else{
-            skds.reportAsTrustworthy(ipaddress);
-        }                
-        
+            skds.reportAsTrustworthy(host);
+        }
+
         LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
-        
+
         return blackListOcurrences;
     }
-    
-    
+
+
     private static final Logger LOG = Logger.getLogger(HostBlackListsValidator.class.getName());
-    
-    
-    
 }
