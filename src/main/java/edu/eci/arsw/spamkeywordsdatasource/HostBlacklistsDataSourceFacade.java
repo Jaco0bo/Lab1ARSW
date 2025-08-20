@@ -19,7 +19,7 @@ public class HostBlacklistsDataSourceFacade {
 
     private final Logger LOG = Logger.getLogger(HostBlacklistsDataSourceFacade.class.getName());
 
-    // Número de servidores registrados (simulado). Puedes ajustar a 10000 si quieres "miles".
+    // Número de servidores registrados (simulado).
     private final int registeredServersCount = 10000;
 
     // Constructor privado para singleton
@@ -28,10 +28,7 @@ public class HostBlacklistsDataSourceFacade {
 
     /**
      * Determina si el host (representado como int) está en la blacklist del servidor blservernum.
-     * Implementación determinística (para que las llamadas repetidas devuelvan el mismo resultado)
-     * y con un pequeño sesgo para que los servidores iniciales tengan mayor probabilidad,
-     * simulando el escenario del enunciado (host encontrado rápido en algunos casos).
-     *
+     * Implementación determinística para pruebas reproducibles.
      * @param blservernum número de servidor (0..getRegisteredServersCount()-1)
      * @param host host codificado como int (ej. "200.24.34.55" -> "200243455")
      * @return true si está en la blacklist de ese servidor, false en otro caso
@@ -49,14 +46,9 @@ public class HostBlacklistsDataSourceFacade {
         long seed = Objects.hash(host, blservernum);
         Random r = new Random(seed);
 
-        // Simulación: probabilidad más alta en servidores con índices pequeños
-        // chance será 0..99; devolvemos true si chance < threshold
-        int baseThreshold = 7; // aproximadamente 7% por servidor en promedio
-        int bias = Math.max(0, 5 - (blservernum / 1000)); // primeros 5000 servidores algo más probables
-        int threshold = baseThreshold + bias; // primeros servidores tienen threshold mayor
-
+        // Simulación simple: probabilidad baja, determinista por seed
         int chance = r.nextInt(100);
-        boolean found = (chance < threshold);
+        boolean found = (chance < 7); // ~7% de probabilidad por servidor
 
         cache.put(key, found);
         return found;

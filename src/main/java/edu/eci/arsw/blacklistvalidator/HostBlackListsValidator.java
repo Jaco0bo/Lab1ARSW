@@ -39,9 +39,7 @@ public class HostBlackListsValidator {
             String ip_int = host.replace(".","");
 
             if (skds.isInBlacklistServer(i, Integer.parseInt(ip_int))){
-
                 blackListOcurrences.add(i);
-
                 ocurrencesCount++;
             }
         }
