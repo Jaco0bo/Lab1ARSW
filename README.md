@@ -117,4 +117,53 @@ Al iniciar el programa ejecute el monitor jVisualVM, y a medida que corran las p
    ![Hilo50](images/hilo50.png)
 5. 100 hilos.
    ![Hilo100](images/hilo100.png)
+
+Con lo anterior, y con los tiempos de ejecución dados, haga una gráfica de tiempo de solución vs. número de hilos. Analice y plantee hipótesis con su compañero para las siguientes preguntas (puede tener en cuenta lo reportado por jVisualVM):
+
+![grafica](images/grafica.png)
+
+### Parte IV - Ejercicio Black List Search
+
+1. Según la ley de Amdahls:
+
+   ![amdahls](img/ahmdahls.png)
    
+   donde S(n) es el mejoramiento teórico del desempeño, P la fracción paralelizable del algoritmo, y n el número de hilos, a mayor n, mayor debería ser dicha mejora. Por qué el mejor desempeño no se logra con los 500 hilos?, cómo se compara este desempeño cuando se usan 200?.
+
+   Aunque Amdahl sugiere que al subir 𝑛 aumenta 𝑆(𝑛), en la práctica aparecen costos que la fórmula no modela:
+
+   - Sobresuscripción: tengo 12 cores. Con 200 o 500 hilos, el SO está cambiando de contexto todo el tiempo; eso es tiempo muerto.
+
+   - Contención/Sincronización: mi solución usa contadores atómicos compartidos y una condición global de paro; con muchísimos hilos esa contención se siente.
+
+   - Carga pequeña + parada temprana: se detiene al encontrar 5 ocurrencias; muchos hilos “llegan tarde” y no aportan.
+
+   - Caché/Memory bandwidth: más hilos peleando por el mismo bus y caché no ayuda.
+
+   Por eso, al pasar de 50→100 hilos ya vi que el tiempo empeora (13→19 ms). Con 200 o 500, esperaría peor todavía. En resumen: más hilos ≠ más rápido cuando se excede (por mucho) el número de cores y la tarea es corta.
+   
+2. ¿Cómo se comporta la solución usando tantos hilos de procesamiento como núcleos comparado con el resultado de usar el doble de éste?.
+
+   Con 12 hilos y 24 hilos me dio prácticamente lo mismo (5 ms):
+
+   - Con ~núcleos, la CPU ya está llena.
+
+   - Duplicar hilos no agrega capacidad, sólo overhead (planificador, colas, atómicos).
+
+   - En problemas con parada temprana, la ganancia adicional es nula o incluso negativa.
+
+   Esto cuadra con Amdahl: si 𝑃 < 1 y el tramo secuencial/overhead empieza a dominar, el speedup se estanca.
+
+3. ¿De acuerdo con lo anterior, si para este problema en lugar de 100 hilos en una sola CPU se pudiera usar 1 hilo en cada una de 100 máquinas hipotéticas, la ley de Amdahls se aplicaría mejor?. Si en lugar de esto se usaran c hilos en 100/c máquinas distribuidas (siendo c es el número de núcleos de dichas máquinas), se mejoraría?. Explique su respuesta.
+
+   - 100 hilos en 1 CPU: sobresuscripción severa → cambios de contexto y contención → resultados malos (lo vi con 100 hilos: 19 ms).
+   - 1 hilo en 100 máquinas: cada hilo tendría su propio core. Eso suena ideal para Amdahl, peeeero aparece nuevo overhead (distribución del trabajo, coordinación del paro global, latencias de red, agregación de resultados, fallos).
+
+      - Si el trabajo fuera grande y “embarrassingly parallel”, sí veríamos beneficios claros.
+
+      - En mi caso (tarea corta, paro en 5 ocurrencias), ese overhead podría comerse buena parte del beneficio. No espero speedup lineal.
+
+4.  ¿Si en lugar de esto se usaran c hilos en 100/c máquinas distribuidas (siendo c es el número de núcleos de dichas máquinas), se mejoraría?
+    Esa configuración mantiene 1 hilo por core a nivel cluster (lo cual evita sobresuscripción local) y reparte memoria/caché entre nodos. Conceptualmente es mejor que 100 hilos comprimidos en una sola CPU. Pero Amdahl sigue mandando: el tramo no paralelizable + la coordinación distribuida (red, sincronización del umbral de 5 hallazgos, etc.) limitan el speedup.
+    - Si el problema fuera mucho más grande, sí mejoraría respecto a 1 sola máquina.
+    - Con carga pequeña como la de este laboratorio, la mejora sería modesta y no lineal.

@@ -9,13 +9,12 @@ public class Main {
         HostBlackListsValidator validator = new HostBlackListsValidator();
 
         int cores = Runtime.getRuntime().availableProcessors();
-        int[] Ns = new int[] { 1 };
-
+        int[] Ns = new int[] { 1, cores, cores*2, 50, 100 };
         System.out.println("Warming up...");
         validator.checkHost(host, cores);
         Thread.sleep(500);
 
-        int repetitions = 20; // repeticiones por configuración
+        int repetitions = 5; // repeticiones por configuración
         for (int N : Ns) {
             System.out.println("======================================");
             System.out.printf("Running experiment with N = %d threads (repetitions=%d)%n", N, repetitions);
