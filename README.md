@@ -38,6 +38,6 @@ Dicho componente está diseñado de acuerdo con el siguiente diagrama, donde:
 
 - HostBlackListsValidator es una clase que ofrece el método 'checkHost', el cual, a través de la clase 'HostBlackListDataSourceFacade', valida en cada una de las listas negras un host determinado. En dicho método está considerada la política de que al encontrarse un HOST en al menos cinco listas negras, el mismo será registrado como 'no confiable', o como 'confiable' en caso contrario. Adicionalmente, retornará la lista de los números de las 'listas negras' en donde se encontró registrado el HOST.
 
-![diagramaClases](images/2-4.png)
+![diagramaClases](img/Model.png)
 
 
