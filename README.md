@@ -107,11 +107,14 @@ A partir de lo anterior, implemente la siguiente secuencia de experimentos para 
 Al iniciar el programa ejecute el monitor jVisualVM, y a medida que corran las pruebas, revise y anote el consumo de CPU y de memoria en cada caso.
 
 1. Un solo hilo.
+   ![unHilo](images/hilo1.png)
 
 2. Tantos hilos como núcleos de procesamiento (haga que el programa determine esto haciendo uso del API Runtime).
-
+   ![coreHilo](images/hilocore.png)
 3. Tantos hilos como el doble de núcleos de procesamiento.
-
+   ![coreHilo2](images/hilocore2.png)
 4. 50 hilos.
-
+   ![Hilo50](images/hilo50.png)
 5. 100 hilos.
+   ![Hilo100](images/hilo100.png)
+   

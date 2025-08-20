@@ -22,7 +22,7 @@ public class HostBlackListsValidator {
     /**
      * Backwards-compatible: usa el número de procesadores disponibles como N por defecto.
      */
-    public List<Integer> checkHost(String host) {
+    public CheckResult checkHost(String host) {
         int defaultThreads = Runtime.getRuntime().availableProcessors();
         return checkHost(host, defaultThreads);
     }
@@ -33,7 +33,7 @@ public class HostBlackListsValidator {
      * @param N número de hilos
      * @return lista de índices de blacklists donde se encontró el host
      */
-    public List<Integer> checkHost(String host, int N) {
+    public CheckResult checkHost(String host, int N) {
         LinkedList<Integer> blackListOcurrences = new LinkedList<>();
 
         AtomicInteger ocurrencesCountShared = new AtomicInteger(0);
@@ -53,7 +53,7 @@ public class HostBlackListsValidator {
             ipInt = Integer.parseInt(ip_int_str);
         } catch (NumberFormatException ex) {
             LOG.log(Level.SEVERE, "Invalid host format: {0}", host);
-            return blackListOcurrences;
+            return new CheckResult(blackListOcurrences, checkedListsCountShared.get());
         }
 
         // Particionado: Distribuye el resto a las primeras particiones 'rem'
@@ -96,7 +96,21 @@ public class HostBlackListsValidator {
         // LOG verídico: número de listas realmente revisadas
         LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}", new Object[]{checkedListsCountShared.get(), registeredServers});
 
-        return blackListOcurrences;
+        return new CheckResult(blackListOcurrences, checkedListsCountShared.get());
+
+    }
+
+    public static class CheckResult {
+        private final List<Integer> occurrences;
+        private final int checkedListsCount;
+
+        public CheckResult(List<Integer> occurrences, int checkedListsCount) {
+            this.occurrences = occurrences;
+            this.checkedListsCount = checkedListsCount;
+        }
+
+        public List<Integer> getOccurrences() { return occurrences; }
+        public int getCheckedListsCount() { return checkedListsCount; }
     }
 
     /**
