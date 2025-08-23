@@ -49,8 +49,8 @@ public class HostBlacklistsDataSourceFacade {
         long seed = Objects.hash(host, blservernum);
         Random r = new Random(seed);
 
-        int baseThreshold = 7; // ~7% por servidor
-        int bias = Math.max(0, 5 - (blservernum / 1000)); // probabilidad ligeramente mayor en servidores de índice pequeño
+        int baseThreshold = 7;
+        int bias = Math.max(0, 5 - (blservernum / 1000));
         int threshold = baseThreshold + bias;
 
         int chance = r.nextInt(100);

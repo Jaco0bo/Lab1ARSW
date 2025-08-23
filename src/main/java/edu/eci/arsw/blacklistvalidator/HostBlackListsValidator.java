@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 /**
  * Validator paralelo: checkHost(String host, int N)
- * - divide el espacio de servidores en N particiones (reparte el resto a las primeras)
+ * - divide el espacio de servidores en N particiones
  * - lanza N HostSearchThread
  * - espera con join()
  * - agrega los resultados y decide reportar
@@ -42,7 +42,6 @@ public class HostBlackListsValidator {
         HostBlacklistsDataSourceFacade skds = HostBlacklistsDataSourceFacade.getInstance();
         int registeredServers = skds.getRegisteredServersCount();
 
-        // sanitize N
         if (N <= 0) N = 1;
         if (N > registeredServers) N = registeredServers;
 
@@ -119,8 +118,8 @@ public class HostBlackListsValidator {
     private static class HostSearchThread extends Thread {
 
         private final int id;
-        private final int start;   // inclusivo
-        private final int end;     // exclusivo
+        private final int start;
+        private final int end;
         private final int hostInt;
         private final HostBlacklistsDataSourceFacade skds;
         private final AtomicInteger ocurrencesCountShared;
@@ -146,7 +145,7 @@ public class HostBlackListsValidator {
             // Recorre el sub-rango y comprueba la condición global para terminar temprano
             for (int i = start; i < end && ocurrencesCountShared.get() < BLACK_LIST_ALARM_COUNT; i++) {
                 boolean found = skds.isInBlacklistServer(i, hostInt);
-                // Incrementa el contador de verificados solo cuando realmente verificamos
+                // Incrementa el contador de verificados
                 checkedListsCountShared.incrementAndGet();
 
                 if (found) {
@@ -156,13 +155,6 @@ public class HostBlackListsValidator {
             }
         }
 
-        public int getOcurrencesCount() {
-            return foundLists.size();
-        }
-
-        /**
-         * Lista de índices donde este hilo encontró el host
-         */
         public List<Integer> getFoundLists() {
             return foundLists;
         }
